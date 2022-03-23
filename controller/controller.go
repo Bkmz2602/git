@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-type album struct {
+type people struct {
 	ID          string `json:"id"`
 	Last_name   string `json:"last_name"`
 	First_name  string `json:"first_name"`
@@ -16,10 +16,11 @@ type album struct {
 
 type Api interface {
 	GetDB() *sql.DB
-	GetAlbums(ctx *gin.Context)
-	GetAlbumsById(ctx *gin.Context)
-	PostAlbums(ctx *gin.Context)
-	ModifyAlbums(ctx *gin.Context)
+	GetPeoples(ctx *gin.Context)
+	GetPeoplesById(ctx *gin.Context)
+	PostPeoples(ctx *gin.Context)
+	ModifyPeoples(ctx *gin.Context)
+	DeletePeoplesById(ctx *gin.Context)
 }
 
 type controller struct {
@@ -42,64 +43,73 @@ func (c *controller) GetDB() *sql.DB {
 	return c.DB
 }
 
-func (c *controller) GetAlbums(ctx *gin.Context) {
-	var books []album
-	var book album
+func (c *controller) GetPeoples(ctx *gin.Context) {
+	var lists []people
+	var list people
 	sql_statement := "SELECT p.id, p.last_name, p.first_name, p.middle_name, r.address FROM people p JOIN registry r ON p.id = r.people_id;"
 	rows, _ := c.DB.Query(sql_statement)
 
 	defer rows.Close()
 
 	for rows.Next() {
-		rows.Scan(&book.ID, &book.Last_name, &book.First_name, &book.Middle_name, &book.Address)
-		books = append(books, book)
+		rows.Scan(&list.ID, &list.Last_name, &list.First_name, &list.Middle_name, &list.Address)
+		lists = append(lists, list)
 	}
 
-	ctx.IndentedJSON(http.StatusOK, books)
+	ctx.IndentedJSON(http.StatusOK, lists)
 }
 
-func (c *controller) GetAlbumsById(ctx *gin.Context) {
-	p := ctx.Param("id")
+func (c *controller) GetPeoplesById(ctx *gin.Context) {
+	var p people
+	ctx.BindJSON(&p)
 
-	var books []album
-	var book album
+	var lists []people
+	var list people
 
 	sql_statement := "select p.id, p.last_name, p.first_name, p.middle_name, r.address From people p JOIN registry r on p.id = r.people_id where r.people_id = $1;"
-	rows, _ := c.DB.Query(sql_statement, p)
+	rows, _ := c.DB.Query(sql_statement, p.ID)
 
 	defer rows.Close()
 
 	for rows.Next() {
-		rows.Scan(&book.ID, &book.Last_name, &book.First_name, &book.Middle_name, &book.Address)
-		books = append(books, book)
+		rows.Scan(&list.ID, &list.Last_name, &list.First_name, &list.Middle_name, &list.Address)
+		lists = append(lists, list)
 	}
 
-	if book.ID == p {
-		ctx.IndentedJSON(http.StatusOK, books)
-		return
-	}
-
-	ctx.IndentedJSON(http.StatusNotFound, gin.H{"message": "album not found"})
+	ctx.IndentedJSON(http.StatusNotFound, gin.H{"message": "people not found"})
 }
 
-func (c *controller) PostAlbums(ctx *gin.Context) {
-	var newAlbum album
-	ctx.BindJSON(&newAlbum)
+func (c *controller) PostPeoples(ctx *gin.Context) {
+	var newPeople people
+	ctx.BindJSON(&newPeople)
 
 	insertPeople := "insert into people (last_name, first_name, middle_name) VALUES ($1, $2, $3);"
-	c.DB.Query(insertPeople, newAlbum.Last_name, newAlbum.First_name, newAlbum.Middle_name)
+	c.DB.Query(insertPeople, newPeople.Last_name, newPeople.First_name, newPeople.Middle_name)
 
 	insertRegistry := "insert into registry(people_id, address) values ((select max(people.id) from people),$1);"
-	c.DB.Query(insertRegistry, newAlbum.Address)
+	c.DB.Query(insertRegistry, newPeople.Address)
 
-	ctx.IndentedJSON(http.StatusCreated, newAlbum)
+	c.GetPeoples(ctx)
+	//	ctx.IndentedJSON(http.StatusCreated, newPeople)
 }
 
-func (c *controller) ModifyAlbums(ctx *gin.Context) {
-	id := ctx.Param("id")
-	newAddress, _ := ctx.GetQuery("address")
+func (c *controller) ModifyPeoples(ctx *gin.Context) {
+	var changePeopleAddress people
+	ctx.BindJSON(&changePeopleAddress)
+
+	id := changePeopleAddress.ID
+	newAddress := changePeopleAddress.Address
 
 	modifyRegistry := "UPDATE registry r SET address = $1 WHERE people_id = $2;"
 	c.DB.Query(modifyRegistry, newAddress, id)
-	c.GetAlbumsById(ctx)
+	c.GetPeoples(ctx)
+}
+
+func (c *controller) DeletePeoplesById(ctx *gin.Context) {
+	var id people
+	ctx.BindJSON(&id)
+
+	deleteRequest := "DELETE FROM people WHERE id = $1;"
+	c.DB.Query(deleteRequest, id.ID)
+	c.GetPeoples(ctx)
 }
