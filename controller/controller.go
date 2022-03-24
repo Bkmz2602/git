@@ -117,17 +117,40 @@ func (c *controller) GetPeoplesById(ctx *gin.Context) {
 	var lists []people
 	var list people
 
-	sql_statement := "select p.id, p.last_name, p.first_name, p.middle_name, r.address From people p JOIN registry r on p.id = r.people_id where r.people_id = $1;"
-	rows, _ := c.DB.Query(sql_statement, id)
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+	builder := psql.Select("p.id", "p.last_name", "p.first_name", "p.middle_name", "r.address").
+		From("people AS p").
+		Join("registry AS r ON p.id = r.people_id").
+		Where("r.people_id = ?")
+
+	sql_statement, _, err := builder.ToSql()
+	if err != nil {
+		fmt.Printf("%v,sql", err)
+		return
+	}
+
+	rows, err := c.DB.Query(sql_statement, id)
+	if err != nil {
+		fmt.Printf("%v,rows", err)
+		return
+	}
 
 	defer rows.Close()
 
 	for rows.Next() {
-		rows.Scan(&list.ID, &list.Last_name, &list.First_name, &list.Middle_name, &list.Address)
+		err := rows.Scan(&list.ID, &list.Last_name, &list.First_name, &list.Middle_name, &list.Address)
+		if err != nil {
+			return
+		}
 		lists = append(lists, list)
+
+	}
+	if list.ID == "" {
+		ctx.IndentedJSON(http.StatusNotFound, gin.H{"message": "people not found"})
+	} else {
+		ctx.IndentedJSON(http.StatusOK, lists)
 	}
 
-	ctx.IndentedJSON(http.StatusNotFound, gin.H{"message": "people not found"})
 }
 
 func (c *controller) PostPeoples(ctx *gin.Context) {
