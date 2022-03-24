@@ -15,11 +15,11 @@ func main() {
 	defer control.GetDB().Close()
 
 	router := gin.Default()
-	router.GET("/albums/", control.GetPeoples)
-	router.GET("/albums/", control.GetPeoplesById)
-	router.POST("/albums/", control.PostPeoples)
-	router.PUT("/albums/", control.ModifyPeoples)
-	router.DELETE("/albums/", control.DeletePeoplesById)
+	router.GET("/peoples/", control.GetPeoples)
+	router.GET("/peoples/:id", control.GetPeoplesById)
+	router.POST("/peoples/", control.PostPeoples)
+	router.PUT("/peoples/", control.ModifyPeoples)
+	router.DELETE("/peoples/", control.DeletePeoplesById)
 
 	router.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{"message": "pong"})
