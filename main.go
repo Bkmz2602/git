@@ -19,7 +19,7 @@ func main() {
 	router.GET("/peoples/:id", control.GetPeoplesById)
 	router.POST("/peoples/", control.PostPeoples)
 	router.PUT("/peoples/", control.ModifyPeoples)
-	router.DELETE("/peoples/", control.DeletePeoplesById)
+	router.DELETE("/peoples/:id", control.DeletePeoplesById)
 
 	router.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{"message": "pong"})

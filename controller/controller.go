@@ -180,10 +180,9 @@ func (c *controller) ModifyPeoples(ctx *gin.Context) {
 }
 
 func (c *controller) DeletePeoplesById(ctx *gin.Context) {
-	var id people
-	ctx.BindJSON(&id)
+	id := ctx.Param("id")
 
 	deleteRequest := "DELETE FROM people WHERE id = $1;"
-	c.DB.Query(deleteRequest, id.ID)
-	c.GetPeoples(ctx)
+	c.DB.Query(deleteRequest, id)
+	ctx.IndentedJSON(http.StatusOK, gin.H{"message": "people is deleted"})
 }
